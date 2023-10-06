@@ -7,6 +7,7 @@ export class SceneSelector extends Phaser.Scene {
         '2': "Interpolation",
         '3': "Client-predicted Input",
         '4': "Fixed Tickrate",
+        '5': "Demo",
     };
 
     constructor() {

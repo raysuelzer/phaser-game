@@ -5,18 +5,23 @@ import { Part1Scene } from "./scenes/Part1Scene";
 import { Part2Scene } from "./scenes/Part2Scene";
 import { Part3Scene } from "./scenes/Part3Scene";
 import { Part4Scene } from "./scenes/Part4Scene";
+import { Part5Scene } from "./scenes/Part5Scene";
 
 import { BACKEND_HTTP_URL } from "./backend";
 
 const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.AUTO,
     fps: {
-        target: 60,
+        target: 40,
         forceSetTimeOut: true,
         smoothStep: false,
     },
-    width: 800,
-    height: 600,
+    scale: {
+      width: 600,
+      height: 600,
+      mode: Phaser.Scale.FIT,
+      autoCenter: Phaser.Scale.CENTER_BOTH
+    },
     // height: 200,
     backgroundColor: '#b6d53c',
     parent: 'phaser-example',
@@ -24,7 +29,7 @@ const config: Phaser.Types.Core.GameConfig = {
         default: "arcade"
     },
     pixelArt: true,
-    scene: [SceneSelector, Part1Scene, Part2Scene, Part3Scene, Part4Scene],
+    scene: [Part5Scene],
 };
 
 const game = new Phaser.Game(config);
