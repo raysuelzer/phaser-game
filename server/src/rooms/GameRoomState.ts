@@ -13,7 +13,7 @@ export class Player extends Schema {
   @type("uint8") direction: number;
   @type("uint8") team: number;
 
-  inputQueue: InputData[] = [];
+  lastInput: InputData;
 }
 
 export class GameRoomState extends Schema {

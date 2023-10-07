@@ -1,4 +1,3 @@
-
 import Phaser, { Tweens } from "phaser";
 import { Room, Client } from "colyseus.js";
 import { BACKEND_URL } from "../backend";
@@ -8,7 +7,6 @@ import { DirectionHelpers } from "../../../server/src/helpers/DirectionHelpers";
 
 import { TileHelpers } from "../helpers/TileHelpers";
 import { CONSTANTS } from "../CONSTANTS";
-import { PlayerHelpers } from "../helpers/PlayerHelpers";
 
 export class Part5Scene extends Phaser.Scene {
   room: Room;
@@ -67,14 +65,14 @@ export class Part5Scene extends Phaser.Scene {
 
     this.room.state.players.onAdd((player, sessionId) => {
       const coords = TileHelpers.GetXYPointOnWorldFromTileIndex(this.tilemap, player.tile, CONSTANTS.ROWS);
-      const entity = this.add.rectangle(coords.x, coords.y, 32, 32, PlayerHelpers.getPlayerColor(player.id), 0.5);
+      const entity = this.add.rectangle(coords.x, coords.y, 32, 32, 0x0000ff, 0.5);
       this.playerEntities[sessionId] = entity;
 
       // is current player
       if (sessionId === this.room.sessionId) {
         this.currentPlayer = entity;
 
-        // this.localRef = this.add.rectangle(coords.x, coords.y, 32, 32, 0x00ffff, 0.5);
+        this.localRef = this.add.rectangle(coords.x, coords.y, 32, 32, 0x00ffff, 0.5);
 
         this.remoteRef = this.add.rectangle(coords.x, coords.y, 32, 32);
         this.remoteRef.setStrokeStyle(1, 0xff0000);
@@ -120,19 +118,7 @@ export class Part5Scene extends Phaser.Scene {
 
 
     this.room.state.onChange((state) => {
-      Object.keys(this.playerEntities).forEach((sessionId) => {
-        const entity = this.playerEntities[sessionId];
-        const player = this.room.state.players.get(sessionId);
-        if (player) {
-          const coords = TileHelpers.GetXYPointOnWorldFromTileIndex(this.tilemap, player.tile, CONSTANTS.ROWS);
-          entity.x = coords.x;
-          entity.y = coords.y;
-        }
-        if (player.tile === -1) {
-          // Hide the entity
-          entity.setVisible(false);
-        }
-      });
+      console.log(state);
       this.updateTilemap(this.room.state.encodedMap.map(n => n));
     });
 
@@ -176,7 +162,7 @@ export class Part5Scene extends Phaser.Scene {
     const tick = this.currentTick++;
     if (Phaser.Input.Keyboard.JustDown(this.cursorKeys.left)) {
       // Trying to cancel any current tween?
-      // this.tweens.killTweensOf({ targets: this.currentPlayer });
+      this.tweens.killTweensOf({ targets: this.currentPlayer });
       this.currentPlayerDirection = CONFIG.DIRECTIONS.LEFT;
       this.room.send(0, {
         direction: CONFIG.DIRECTIONS.LEFT,
@@ -184,25 +170,25 @@ export class Part5Scene extends Phaser.Scene {
       })
     } else if (Phaser.Input.Keyboard.JustDown(this.cursorKeys.right)) {
       this.currentPlayerDirection = CONFIG.DIRECTIONS.RIGHT;
-      // this.tweens.killTweensOf({ targets: this.currentPlayer });
+      this.tweens.killTweensOf({ targets: this.currentPlayer });
       this.room.send(0, {
         direction: CONFIG.DIRECTIONS.RIGHT, tick
       })
     } else if (Phaser.Input.Keyboard.JustDown(this.cursorKeys.up)) {
       this.currentPlayerDirection = CONFIG.DIRECTIONS.UP;
-      // this.tweens.killTweensOf({ targets: this.currentPlayer });
+      this.tweens.killTweensOf({ targets: this.currentPlayer });
       this.room.send(0, {
         direction: CONFIG.DIRECTIONS.UP, tick
       })
     } else if (Phaser.Input.Keyboard.JustDown(this.cursorKeys.down)) {
       this.currentPlayerDirection = CONFIG.DIRECTIONS.DOWN;
-      // this.tweens.killTweensOf({ targets: this.currentPlayer });
+      this.tweens.killTweensOf({ targets: this.currentPlayer });
       this.room.send(0, {
         direction: CONFIG.DIRECTIONS.DOWN, tick
       })
     } else if (Phaser.Input.Keyboard.JustDown(this.cursorKeys.space)) {
       this.currentPlayerDirection = CONFIG.DIRECTIONS.STOP;
-      // this.tweens.killTweensOf({ targets: this.currentPlayer });
+      this.tweens.killTweensOf({ targets: this.currentPlayer });
       this.room.send(0, {
         direction: CONFIG.DIRECTIONS.STOP, tick
       })
@@ -212,10 +198,21 @@ export class Part5Scene extends Phaser.Scene {
       this.elapsedTime -= this.fixedTimeStep;
       this.fixedTick(time, this.fixedTimeStep);
     }
+
+    // this.debugFPS.text = `Frame rate: ${this.game.loop.actualFps}`;
   }
 
   updateTilemap(encodedData) {
-    const gridSize = CONSTANTS.ROWS;
+    // if (!this.tilemap && !this.tilemapLayer) {
+    //   this.tilemap = this.make.tilemap({
+    //     data:
+    //       encodedData.map(n => 0)
+    //     , tileWidth: 32, tileHeight: 32
+    //   });
+    //   const tileset = this.tilemap.addTilesetImage('tiles', 'tiles', 32, 32, 0, 0);
+    //   this.tilemapLayer = this.tilemap.createLayer(0, tileset, 0, 0);
+    // }
+    const gridSize = 25; // Since it's a 25x25 grid
 
     for (let i = 0; i < encodedData.length; i++) {
       const x = i % gridSize;
@@ -238,25 +235,91 @@ export class Part5Scene extends Phaser.Scene {
   }
 
   tweenPlayerMovement() {
-    // this.tweens.killTweensOf({ targets: this.currentPlayer });
-    // const nextValidTile = DirectionHelpers.GetNextValidTile(this.currentPlayerTile, this.currentPlayerDirection);
-    // if (nextValidTile === this.currentPlayerTile) { return; }
-    // const nextValidTileWorldPosition = TileHelpers.GetXYPointOnWorldFromTileIndex(this.tilemap, nextValidTile, CONFIG.ROWS)
-    // let { x: destinationX, y: destinationY } = nextValidTileWorldPosition;
+    const nextValidTile = DirectionHelpers.GetNextValidTile(this.currentPlayerTile, this.currentPlayerDirection);
+    if (nextValidTile === this.currentPlayerTile) { return; }
+    const nextValidTileWorldPosition = TileHelpers.GetXYPointOnWorldFromTileIndex(this.tilemap, nextValidTile, CONFIG.ROWS)
+    let { x: destinationX, y: destinationY } = nextValidTileWorldPosition;
 
-    // this.tweens.add({
-    //   targets: [this.currentPlayer],
-    //   x: destinationX,
-    //   y: destinationY,
-    //   duration: 500, // Duration in milliseconds. Adjust as needed.
-    //   ease: 'Linear' // Linear interpolation for constant speed.
-    // });
+    if (this.currentPlayerDirection !== CONFIG.DIRECTIONS.STOP) {
+      switch (this.currentPlayerDirection) {
+        case CONFIG.DIRECTIONS.LEFT:
+          destinationX -= 32;
+          break;
+        case CONFIG.DIRECTIONS.RIGHT:
+          destinationX += 32;
+          break;
+        case CONFIG.DIRECTIONS.UP:
+          destinationY -= 32;
+          break;
+        case CONFIG.DIRECTIONS.DOWN:
+          destinationY += 32;
+          break;
+        case CONFIG.DIRECTIONS.STOP:
+          break;
+    }
+
+    this.tweens.add({
+      targets: [this.currentPlayer],
+      x: destinationX,
+      y: destinationY,
+      duration: 500, // Duration in milliseconds. Adjust as needed.
+      ease: 'Linear' // Linear interpolation for constant speed.
+    });
+  }
+
+
   }
 
   fixedTick(time, delta) {
     this.currentTick++;
 
     this.tweenPlayerMovement();
+
+    // const currentPlayerRemote = this.room.state.players.get(this.room.sessionId);
+    // const ticksBehind = this.currentTick - currentPlayerRemote.tick;
+    // console.log({ ticksBehind });
+
+
+
+
+    // this.inputPayload.left = this.cursorKeys.left.isDown;
+    // this.inputPayload.right = this.cursorKeys.right.isDown;
+    // this.inputPayload.up = this.cursorKeys.up.isDown;
+    // this.inputPayload.down = this.cursorKeys.down.isDown;
+    // this.inputPayload.tick = this.currentTick;
+    // this.room.send(0, this.cursorKeys.down.isDown);
+
+    // if (this.inputPayload.left) {
+    //     this.currentPlayer.x -= velocity;
+
+    // } else if (this.inputPayload.right) {
+    //     this.currentPlayer.x += velocity;
+    // }
+
+    // if (this.inputPayload.up) {
+    //     this.currentPlayer.y -= velocity;
+
+    // } else if (this.inputPayload.down) {
+    //     this.currentPlayer.y += velocity;
+    // // }
+
+    // this.localRef.x = this.currentPlayer.x;
+    // this.localRef.y = this.currentPlayer.y;
+
+    // for (let sessionId in this.playerEntities) {
+    //   // interpolate all player entities
+    //   // (except the current player)
+    //   if (sessionId === this.room.sessionId) {
+    //     continue;
+    //   }
+
+    //   const entity = this.playerEntities[sessionId];
+    //   const { serverX, serverY } = entity.data.values;
+
+    //   entity.x = Phaser.Math.Linear(entity.x, serverX, 0.2);
+    //   entity.y = Phaser.Math.Linear(entity.y, serverY, 0.2);
+    // }
+
   }
 
 }

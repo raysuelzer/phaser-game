@@ -3,7 +3,7 @@ import { IGameTileState, Player } from "../rooms/GameRoomState";
 export class TileHelper {
 
   static IsPlayerCapturing(player: Player, tile: IGameTileState) {
-    return player.team !== tile.team && tile.capturingPlayer === null;
+    return player.team !== tile.team && tile.capturingPlayer === 0;
   }
 
   static IsCaptureComplete(tile: IGameTileState, player: Player) {
@@ -16,7 +16,7 @@ export class TileHelper {
     // This is a really shit way to calculate a collision probably
 
     // The only way for a collision to occur is if the tile is currently being captured.
-    if (tile.capturingPlayer !== null) {
+    if (tile.capturingPlayer === 0) {
       return false;
     }
 

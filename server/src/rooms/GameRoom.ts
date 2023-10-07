@@ -1,29 +1,28 @@
-import { Room, Client } from "colyseus";
-import { MapSchema, Schema, ArraySchema, type } from '@colyseus/schema';
+import { Dispatcher } from '@colyseus/command';
+import { ArraySchema } from '@colyseus/schema';
 
-import { InputData, GameRoomState, Player, IGameTileState } from "./GameRoomState";
-import { CONFIG } from "../CONFIG";
-import { MapTileEncoder } from "../encoders/MapTileEncoder";
-import { DirectionHelpers } from "../helpers/DirectionHelpers";
-import { Dispatcher } from "@colyseus/command";
-import { UpdatePlayerPositionCommand } from "../commands/UpdatePlayerPositionCommand";
-import { UpdateMapFromPlayerPositionCommand } from "../commands/UpdateMapFromPlayerPositionCmd";
+import { Client, Room } from 'colyseus';
 
+import { SpawnPlayerCommand } from '../commands/SpawnPlayerCommand';
+import { UpdateMapFromPlayerPositionCommand } from '../commands/UpdateMapFromPlayerPositionCmd';
+import { UpdatePlayerPositionCommand } from '../commands/UpdatePlayerPositionCommand';
+import { MapTileEncoder } from '../encoders/MapTileEncoder';
+import { GameRoomState } from './GameRoomState';
 
 export class GameRoom extends Room<GameRoomState> {
   dispatcher = new Dispatcher(this);
-  fixedTimeStep = 5000;
+  fixedTimeStep = 500;
 
   onCreate(options: any) {
+    // this.patchRate = this.fixedTimeStep;
     this.setState(new GameRoomState());
 
     this.onMessage(0, (client, input) => {
-      console.log('input received', client, input);
       // handle player input
       const player = this.state.players.get(client.sessionId);
 
-      // enqueue input to user input buffer.
-      player.inputQueue.push(input);
+      // Update input
+      player.lastInput = input;
     });
 
     let elapsedTime = 0;
@@ -41,6 +40,7 @@ export class GameRoom extends Room<GameRoomState> {
   fixedTick(_timeStep: number) {
     const decodedMap = MapTileEncoder.decodeMap(this.state.encodedMap);
     // Update Player Positions
+
     this.state.players.forEach((player, sessionId) => {
       // Position the player on the map, based upon the direction they are moving.
       // Note this does not update the map state, it just updates the players "future" position.
@@ -57,79 +57,18 @@ export class GameRoom extends Room<GameRoomState> {
       this.dispatcher.dispatch(new UpdateMapFromPlayerPositionCommand(decodedMap), {
         sessionId, player
       });
-
-
-
     });
 
     // Update the encoded map with the new map state.
+    // TODO: Diff the map state and only update the tiles that have changed.
     this.state.assign({
       encodedMap: new ArraySchema<number>(...MapTileEncoder.encodeMap(decodedMap))
     })
   }
 
-  updateMap(decodedMap: IGameTileState[], player: Player) {
-    // Current state of tile player is on.
-    if (player?.tile === undefined) {
-      console.log(`player.tile is undefined ${player.tile}`)
-      return;
-    }
-
-    const tile = decodedMap[player.tile];
-    if (!tile) {
-      return
-    }
-    tile.player = 1;
-
-    if (tile === undefined) {
-      console.log(`tile is undefined ${player.tile}`);
-      return decodedMap;
-    }
-
-    // 1) Check for collisions with other caputring players. Figure out which player dies.
-    //    i.e. If two players are trying to capture the same tile one of them dies.
-    //    I think the logic here would be that if the other is not currently on that tile they are capturing, then they die.
-    //  Example: Player 1 is capturing tiles 4,5,6,7 and Player 1 is currently on tile 7. Player 2 runs into tile 6, player 1 dies.
-
-    // 2) Player is capturing another team's tile and no one else capturing it.
-    if (player.team !== tile.team && tile.capturingPlayer === null) {
-      tile.capturingPlayer = player.id;
-      tile.capturingTeam = player.team;
-    }
-
-    // 3) Succesful capture of a tile block.
-
-    // Player is on a tile that is controlled by their team
-    // this will complete the capture of the tile block
-    if (player.team === tile.team) {
-      // TODO: This needs to capture the entire tile block,
-      // not just the tiles the player was capturing. We need to do math
-      // to determine which tiles are part of the block.
-      decodedMap.forEach((tile) => {
-        if (tile.capturingPlayer === player.id) {
-          tile.team = player.team;
-          tile.player = player.id;
-          // Now occupied and available for capture
-          tile.capturingPlayer = null;
-          tile.capturingTeam = null;
-        }
-      });
-    }
-  }
-
-
-
   onJoin(client: Client, options: any) {
     console.log(client.sessionId, "joined!");
-
-    const player = new Player();
-    player.id = this.state.players.size + 1
-    player.tile = 1;
-    player.direction = CONFIG.DIRECTIONS.STOP;
-    player.team = 1;
-
-    this.state.players.set(client.sessionId, player);
-    this.updateMap(MapTileEncoder.decodeMap(this.state.encodedMap), player);
+    this.dispatcher.dispatch(new SpawnPlayerCommand(), { sessionId: client.sessionId })
   }
 
   onLeave(client: Client, consented: boolean) {

@@ -30,6 +30,7 @@ export class MapTileEncoder {
       capturingPlayer;
   }
 
+  // TODO: I can just use a mask to get the values out of the encoded value
   static decodeTileState(encodedValue: number): IGameTileState {
     return {
       team: (encodedValue >> 18) & 3,
