@@ -13,5 +13,5 @@
   },
   "include": [
     "src"
-  ]
+, "../client/src/helpers/FloodFillUtil copy.ts"  ]
 }

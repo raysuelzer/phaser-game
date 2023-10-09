@@ -9,6 +9,7 @@ import { DirectionHelpers } from "../../../server/src/helpers/DirectionHelpers";
 import { TileHelpers } from "../helpers/TileHelpers";
 import { CONSTANTS } from "../CONSTANTS";
 import { PlayerHelpers } from "../helpers/PlayerHelpers";
+import { FloodFillUtility } from "../helpers/FloodFillUtil copy";
 
 export class Part5Scene extends Phaser.Scene {
   room: Room;
@@ -51,7 +52,30 @@ export class Part5Scene extends Phaser.Scene {
     this.load.spritesheet('tilesheet', 'assets/gridtiles.png', { frameWidth: 32, frameHeight: 32 });
   }
 
+
+  test() {
+    const grid = [
+      0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 1, 1, 9, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 1, 1, 9, 9, 9, 1, 0, 1, 0, 0, 0, 0, 0, 3, 3, 0, 0, 0,
+      0, 0, 1, 1, 9, 9, 9, 1, 0, 1, 0, 0, 0, 0, 0, 3, 3, 0, 0, 0,
+      0, 0, 1, 1, 9, 9, 9, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    ].map(c => c);
+    const floodFill = new FloodFillUtility(grid, 20);
+    const result = floodFill.fillEnclosedSpaces(1);
+    // chunk the grid into 20x20
+    const chunks = [];
+    for (let i = 0; i < grid.length; i += 20) {
+      chunks.push(grid.slice(i, i + 20));
+    }
+    return chunks;
+  }
+
   async create() {
+    console.log(this.test());
     this.cursorKeys = this.input.keyboard.createCursorKeys();
     // connect with the room
     await this.connect();
@@ -86,6 +110,8 @@ export class Part5Scene extends Phaser.Scene {
           this.remoteRef.x = x;
           this.remoteRef.y = y;
         });
+
+        this.startCameraFollow()
 
       } else {
         // listening for server updates
@@ -136,9 +162,23 @@ export class Part5Scene extends Phaser.Scene {
       this.updateTilemap(this.room.state.encodedMap.map(n => n));
     });
 
-    // this.cameras.main.startFollow(this.ship, true, 0.2, 0.2);
-    // this.cameras.main.setZoom(1);
-    // this.cameras.main.setBounds(0, 0, 600, 600);
+
+  }
+
+  startCameraFollow() {
+    // Set the camera zoom level
+    this.cameras.main.setZoom(2);
+
+    // Start following the player
+    this.cameras.main.startFollow(this.currentPlayer, true, 0.2, 0.2);
+
+    // Set the bounds of the camera to the grid size
+    this.cameras.main.setBounds(0, 0, 800, 800);
+
+    // Optionally, set a deadzone (let's say 50 pixels from the edge)
+    // The size of the deadzone would be (800/2 - 50*2) = 400-100 = 300.
+    // Remember that the deadzone values are halved because of the zoom level.
+    // this.cameras.main.setDeadzone(300, 300);
   }
 
   async connect() {
@@ -166,7 +206,6 @@ export class Part5Scene extends Phaser.Scene {
   update(time: number, delta: number): void {
     // skip loop if not connected yet.
     if (!this.currentPlayer) {
-      console.log('no player yet');
       return;
     }
 
@@ -222,7 +261,6 @@ export class Part5Scene extends Phaser.Scene {
       const y = Math.floor(i / gridSize);
       const newValue = encodedData[i];
       const tileSpriteIndex = TileHelpers.GetTileSpriteIndex(newValue);
-
       this.tilemap.putTileAt(tileSpriteIndex, x, y, true, this.tilemapLayer);
     }
   }

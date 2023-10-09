@@ -36,14 +36,11 @@ export class TileHelpers {
   static GetTeamCapturedTileSpriteIndex(team: number): number {
     //28
     if (team === 1) {
-      console.log(28);
       return 28;
     }
 
     if (team === 2) {
-      console.log(67);
       return 67;
-
     }
   }
 

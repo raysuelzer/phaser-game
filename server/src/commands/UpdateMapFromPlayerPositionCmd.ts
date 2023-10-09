@@ -3,6 +3,8 @@ import { Command } from '@colyseus/command';
 import { TileHelper } from '../helpers/TileHelper';
 import { GameRoom } from '../rooms/GameRoom';
 import { IGameTileState, Player } from '../rooms/GameRoomState';
+import { FloodFillUtil } from '../helpers/FloodFillUtil';
+import { CONFIG } from '../CONFIG';
 
 export class UpdateMapFromPlayerPositionCommand extends Command<GameRoom, {
   sessionId: string,
@@ -37,8 +39,9 @@ export class UpdateMapFromPlayerPositionCommand extends Command<GameRoom, {
       }
       console.log('player is coliding')
 
-      // The player is going to be placed on a tile that is being captured by themselves or someone else.
-      // This means there will be a collision.
+      // The player is colliding with themselves and they die
+      // all of the tiles they were capturing or captured are now free
+      // COMMAND: murkPlayer(playerId: tile.capturingPlayer, assignTilesTo: null)
       if (proposedTileCopy.capturingPlayer === player.id) {
         this.decodedMap.forEach((tile, index) => {
           if (index === player.tile) {
@@ -46,40 +49,38 @@ export class UpdateMapFromPlayerPositionCommand extends Command<GameRoom, {
           }
 
           if (tile.capturingPlayer === player.id) {
-            tile.capturingPlayer = null;
-            tile.capturingTeam = null;
+            tile.capturingPlayer = 0;
+            tile.capturingTeam = 0;
           }
           if (tile.player === player.id) {
-            tile.player = null;
-            tile.team = null;
+            tile.player = 0;
+            tile.team = 0;
           };
         });
         return;
       }
-      // The player is colliding with themselves and they die
-      // all of the tiles they were capturing or captured are now free
-      // COMMAND: murkPlayer(playerId: tile.capturingPlayer, assignTilesTo: null)
 
 
       // The player is colliding with another player. They kill the player who was capturing.
       // and take the tiles that had been captured before to the other player.
       if (proposedTileCopy.capturingPlayer !== player.id) {
-        // Kill Player
+        // Loop through all the tiles and update any tiles that the player was capturing
+        // or controlled to the player who was not capturing.
         this.decodedMap.forEach((tile) => {
           if (tile.capturingPlayer == 0) {
             return;
+          }
+          if (tile.player === proposedTileCopy.capturingPlayer) {
+            tile.player = player.id;
+            tile.team = player.team;
+            tile.capturingPlayer = 0;
+            tile.capturingTeam = 0;
           }
           if (tile.capturingPlayer === proposedTileCopy.capturingPlayer) {
             tile.capturingPlayer = 0;
             tile.capturingTeam = 0;
           }
-          if (tile.player === proposedTileCopy.capturingPlayer) {
-            tile.player = player.id;
-            tile.team = player.team;
-            //
-          }
         })
-
       }
 
       return;
@@ -95,21 +96,30 @@ export class UpdateMapFromPlayerPositionCommand extends Command<GameRoom, {
         return;
       }
       console.log('Capture complete');
+
       // TODO: This needs to capture the entire tile block,
       // not just the tiles the player was capturing. We need to do math
-      // to determine which tiles are part of the block.
+      // to determine which tiles are within the bounds of all of the tiles the player was capturing.
       // We need to know all the tiles that the team controls.
-      // We need to do some ray casting to determine which tiles are part of the block.
+      // We may to do some ray casting to determine which tiles are part of the block (cluster) of tiles
       decodedMap.forEach((tile) => {
         // For now, just capture the tiles the player was capturing before.
         // and assign to the new team.
         if (tile.capturingPlayer === player.id) {
-          console.log('Capturing tile!');
           tile.team = player.team;
           tile.player = player.id;
           // No one is capturing these tiles anymore
           tile.capturingPlayer = 0;
           tile.capturingTeam = 0;
+        }
+      });
+
+      const floodFillUtil = new FloodFillUtil(decodedMap.map(t => t.player), CONFIG.ROWS);
+      const filledTiles = floodFillUtil.fillEnclosedSpaces(player.id);
+      filledTiles.forEach((p, tileIndex) => {
+        if (p === player.id) {
+          decodedMap[tileIndex].player = player.id;
+          decodedMap[tileIndex].team = player.team;
         }
       });
     }
@@ -124,6 +134,7 @@ export class UpdateMapFromPlayerPositionCommand extends Command<GameRoom, {
     }
 
   }
+
 
   private checkCanContinue(player: Player): boolean {
     if (player?.tile === undefined) {
