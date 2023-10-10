@@ -29,8 +29,6 @@ export class TileHelpers {
     const centerY = (tileY + 0.5) * tileHeight;
 
     return { x: centerX, y: centerY };
-
-    return { x: centerX, y: centerY };
   }
 
   static GetTeamCapturedTileSpriteIndex(team: number): number {

@@ -1,15 +1,13 @@
 
-import Phaser, { Tweens } from "phaser";
-import { Room, Client } from "colyseus.js";
-import { BACKEND_URL } from "../backend";
-import { CONFIG } from "../../../server/src/CONFIG";
-import { MapTileEncoder } from "../../../server/src/encoders/MapTileEncoder";
-import { DirectionHelpers } from "../../../server/src/helpers/DirectionHelpers";
+import { Client, Room } from 'colyseus.js';
+import Phaser from 'phaser';
 
-import { TileHelpers } from "../helpers/TileHelpers";
-import { CONSTANTS } from "../CONSTANTS";
-import { PlayerHelpers } from "../helpers/PlayerHelpers";
-import { FloodFillUtility } from "../helpers/FloodFillUtil copy";
+import { CONFIG } from '../../../server/src/CONFIG';
+import { MapTileEncoder } from '../../../server/src/encoders/MapTileEncoder';
+import { BACKEND_URL } from '../backend';
+import { CONSTANTS } from '../CONSTANTS';
+import { PlayerHelpers } from '../helpers/PlayerHelpers';
+import { TileHelpers } from '../helpers/TileHelpers';
 
 export class Part5Scene extends Phaser.Scene {
   room: Room;
@@ -49,49 +47,25 @@ export class Part5Scene extends Phaser.Scene {
   preload() {
     this.load.image('tiles', 'assets/gridtiles.png');
     this.load.image('ship_0001', 'assets/ship_0001.png');
-    this.load.spritesheet('tilesheet', 'assets/gridtiles.png', { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet('tilesheet', 'assets/gridtiles.png', { frameWidth: CONFIG.TILE_SIZE, frameHeight: CONFIG.TILE_SIZE });
   }
 
-
-  test() {
-    const grid = [
-      0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 1, 1, 9, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 1, 1, 9, 9, 9, 1, 0, 1, 0, 0, 0, 0, 0, 3, 3, 0, 0, 0,
-      0, 0, 1, 1, 9, 9, 9, 1, 0, 1, 0, 0, 0, 0, 0, 3, 3, 0, 0, 0,
-      0, 0, 1, 1, 9, 9, 9, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    ].map(c => c);
-    const floodFill = new FloodFillUtility(grid, 20);
-    const result = floodFill.fillEnclosedSpaces(1);
-    // chunk the grid into 20x20
-    const chunks = [];
-    for (let i = 0; i < grid.length; i += 20) {
-      chunks.push(grid.slice(i, i + 20));
-    }
-    return chunks;
-  }
 
   async create() {
-    console.log(this.test());
     this.cursorKeys = this.input.keyboard.createCursorKeys();
     // connect with the room
     await this.connect();
     if (!this.tilemap && !this.tilemapLayer) {
-      // const data = this.room.state.encodedData.map(n => 0);
-      // console.log(data);
       this.tilemap = this.make.tilemap({
-        data: this.makeTiles(new Array<number>(CONFIG.TOTAL_TILES).fill(20)), tileWidth: 32, tileHeight: 32
+        data: this.makeTiles(new Array<number>(CONFIG.TOTAL_TILES).fill(20)), tileWidth: CONFIG.TILE_SIZE, tileHeight: CONFIG.TILE_SIZE
       });
-      const tileset = this.tilemap.addTilesetImage('tiles', 'tiles', 32, 32, 0, 0);
+      const tileset = this.tilemap.addTilesetImage('tiles', 'tiles', CONFIG.TILE_SIZE, CONFIG.TILE_SIZE, 0, 0);
       this.tilemapLayer = this.tilemap.createLayer(0, tileset, 0, 0);
     }
 
     this.room.state.players.onAdd((player, sessionId) => {
       const coords = TileHelpers.GetXYPointOnWorldFromTileIndex(this.tilemap, player.tile, CONSTANTS.ROWS);
-      const entity = this.add.rectangle(coords.x, coords.y, 32, 32, PlayerHelpers.getPlayerColor(player.id), 0.5);
+      const entity = this.add.rectangle(coords.x, coords.y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE, PlayerHelpers.getPlayerColor(player.id), 0.5);
       this.playerEntities[sessionId] = entity;
 
       // is current player
@@ -100,12 +74,11 @@ export class Part5Scene extends Phaser.Scene {
 
         // this.localRef = this.add.rectangle(coords.x, coords.y, 32, 32, 0x00ffff, 0.5);
 
-        this.remoteRef = this.add.rectangle(coords.x, coords.y, 32, 32);
+        this.remoteRef = this.add.rectangle(coords.x, coords.y, CONFIG.TILE_SIZE, CONFIG.TILE_SIZE);
         this.remoteRef.setStrokeStyle(1, 0xff0000);
 
         player.onChange(() => {
           this.currentPlayerTile = player.tile;
-          this.tweens.killTweensOf({ targets: this.currentPlayer });
           const { x, y } = TileHelpers.GetXYPointOnWorldFromTileIndex(this.tilemap, player.tile, CONSTANTS.ROWS);
           this.remoteRef.x = x;
           this.remoteRef.y = y;
@@ -159,10 +132,9 @@ export class Part5Scene extends Phaser.Scene {
           entity.setVisible(false);
         }
       });
+
       this.updateTilemap(this.room.state.encodedMap.map(n => n));
     });
-
-
   }
 
   startCameraFollow() {
@@ -178,7 +150,7 @@ export class Part5Scene extends Phaser.Scene {
     // Optionally, set a deadzone (let's say 50 pixels from the edge)
     // The size of the deadzone would be (800/2 - 50*2) = 400-100 = 300.
     // Remember that the deadzone values are halved because of the zoom level.
-    // this.cameras.main.setDeadzone(300, 300);
+    this.cameras.main.setDeadzone(300, 300);
   }
 
   async connect() {
@@ -215,7 +187,6 @@ export class Part5Scene extends Phaser.Scene {
     const tick = this.currentTick++;
     if (Phaser.Input.Keyboard.JustDown(this.cursorKeys.left)) {
       // Trying to cancel any current tween?
-      // this.tweens.killTweensOf({ targets: this.currentPlayer });
       this.currentPlayerDirection = CONFIG.DIRECTIONS.LEFT;
       this.room.send(0, {
         direction: CONFIG.DIRECTIONS.LEFT,
@@ -223,25 +194,21 @@ export class Part5Scene extends Phaser.Scene {
       })
     } else if (Phaser.Input.Keyboard.JustDown(this.cursorKeys.right)) {
       this.currentPlayerDirection = CONFIG.DIRECTIONS.RIGHT;
-      // this.tweens.killTweensOf({ targets: this.currentPlayer });
       this.room.send(0, {
         direction: CONFIG.DIRECTIONS.RIGHT, tick
       })
     } else if (Phaser.Input.Keyboard.JustDown(this.cursorKeys.up)) {
       this.currentPlayerDirection = CONFIG.DIRECTIONS.UP;
-      // this.tweens.killTweensOf({ targets: this.currentPlayer });
       this.room.send(0, {
         direction: CONFIG.DIRECTIONS.UP, tick
       })
     } else if (Phaser.Input.Keyboard.JustDown(this.cursorKeys.down)) {
       this.currentPlayerDirection = CONFIG.DIRECTIONS.DOWN;
-      // this.tweens.killTweensOf({ targets: this.currentPlayer });
       this.room.send(0, {
         direction: CONFIG.DIRECTIONS.DOWN, tick
       })
     } else if (Phaser.Input.Keyboard.JustDown(this.cursorKeys.space)) {
       this.currentPlayerDirection = CONFIG.DIRECTIONS.STOP;
-      // this.tweens.killTweensOf({ targets: this.currentPlayer });
       this.room.send(0, {
         direction: CONFIG.DIRECTIONS.STOP, tick
       })

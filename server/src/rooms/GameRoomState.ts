@@ -8,7 +8,7 @@ export interface InputData {
 
 export class Player extends Schema {
   @type("uint8") id: number;
-  @type("uint16") tile: number;
+  @type("int16") tile: number;
   @type("number") tick: number;
   @type("uint8") direction: number;
   @type("uint8") team: number;

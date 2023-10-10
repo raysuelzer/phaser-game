@@ -1,6 +1,7 @@
 export const CONFIG = {
   TOTAL_TILES: 625,
   ROWS: 25,
+  TILE_SIZE: 32,
   DIRECTIONS: {
     UP: 0,
     RIGHT: 1,
