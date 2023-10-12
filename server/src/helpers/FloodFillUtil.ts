@@ -32,30 +32,6 @@ export class FloodFillUtil {
   }
 
   public fillEnclosedSpaces(targetPlayer: number): number[] {
-    // const height = this.grid.length / this.width;
-    // const TEMP_FILL = -9999;  // A temporary value unlikely to be in the grid
-
-    // // Create a copy of the original grid
-    // const originalGrid = [...this.grid];
-
-    // // Start flood fill from the boundary cells to mark outside areas
-    // for (let i = 0; i < this.width; i++) {
-    //     this.floodFill(i, 0, targetPlayer, TEMP_FILL);          // Top boundary
-    //     this.floodFill(i, height - 1, targetPlayer, TEMP_FILL); // Bottom boundary
-    // }
-    // for (let j = 0; j < height; j++) {
-    //     this.floodFill(0, j, targetPlayer, TEMP_FILL);          // Left boundary
-    //     this.floodFill(this.width - 1, j, targetPlayer, TEMP_FILL); // Right boundary
-    // }
-
-    // // Restore original values where the cell is not TEMP_FILL, otherwise set to targetValue
-    // for (let i = 0; i < this.grid.length; i++) {
-    //     if (this.grid[i] === TEMP_FILL) {
-    //         this.grid[i] = originalGrid[i];;
-    //     } else {
-    //         this.grid[i] = targetPlayer
-    //     }
-    // }
       const height = this.grid.length / this.width;
       const TEMP_FILL = -9999;  // A temporary value unlikely to be in the grid
       const boundaryOriginalValues: Map<number, number> = new Map();

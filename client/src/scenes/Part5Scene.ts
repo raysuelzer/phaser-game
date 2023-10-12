@@ -139,10 +139,10 @@ export class Part5Scene extends Phaser.Scene {
 
   startCameraFollow() {
     // Set the camera zoom level
-    this.cameras.main.setZoom(2);
+    this.cameras.main.setZoom(1);
 
     // Start following the player
-    this.cameras.main.startFollow(this.currentPlayer, true, 0.2, 0.2);
+    // this.cameras.main.startFollow(this.currentPlayer, true, 0.2, 0.2);
 
     // Set the bounds of the camera to the grid size
     this.cameras.main.setBounds(0, 0, 800, 800);

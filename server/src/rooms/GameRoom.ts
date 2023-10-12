@@ -42,6 +42,8 @@ export class GameRoom extends Room<GameRoomState> {
     // Update Player Positions
 
     this.state.players.forEach((player, sessionId) => {
+      // TODO: Kill players with 0 tiles;
+
       // Position the player on the map, based upon the direction they are moving.
       // Note this does not update the map state, it just updates the players "future" position.
       // We will update the map state after we have updated all the players positions and handle

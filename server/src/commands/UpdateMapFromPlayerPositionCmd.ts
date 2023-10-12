@@ -5,6 +5,7 @@ import { GameRoom } from '../rooms/GameRoom';
 import { IGameTileState, Player } from '../rooms/GameRoomState';
 import { FloodFillUtil } from '../helpers/FloodFillUtil';
 import { CONFIG } from '../CONFIG';
+import { PlayerKilledCommand } from './PlayerKilledCommand';
 
 export class UpdateMapFromPlayerPositionCommand extends Command<GameRoom, {
   sessionId: string,
@@ -16,6 +17,10 @@ export class UpdateMapFromPlayerPositionCommand extends Command<GameRoom, {
   }
 
   execute({ sessionId, player }: this['payload']) {
+    if (player.tile === -1) {
+      console.log('player is dead');
+      return
+    }
     const decodedMap = this.decodedMap;
     // Make sure that the player and the tile exist
     if (!this.checkCanContinue(player)) {
@@ -30,7 +35,6 @@ export class UpdateMapFromPlayerPositionCommand extends Command<GameRoom, {
     // TODO: Do a better copy
     const proposedTileCopy = JSON.parse(JSON.stringify(decodedMap[player.tile]))
 
-
     if (TileHelper.IsPlayerCollidingWithCapturingPlayer(proposedTileCopy, player)) {
       // The player is stopped on the tile they are capturing.
       // I guess, we just do nothing here.
@@ -44,7 +48,12 @@ export class UpdateMapFromPlayerPositionCommand extends Command<GameRoom, {
       // COMMAND: murkPlayer(playerId: tile.capturingPlayer, assignTilesTo: null)
       if (proposedTileCopy.capturingPlayer === player.id) {
         this.decodedMap.forEach((tile, index) => {
+          // BUG: I just added tile.team to see if that removes the issue
+          // of the player / team keeping this tile after they die and respawn.
+          // it should be taken care of in the player killed command.
+          // but it's not working.
           if (index === player.tile) {
+            tile.team = 0;
             return;
           }
 
@@ -57,7 +66,11 @@ export class UpdateMapFromPlayerPositionCommand extends Command<GameRoom, {
             tile.team = 0;
           };
         });
-        return;
+
+        return [
+          new PlayerKilledCommand()
+          .setPayload({ playerId: player.id })
+        ];
       }
 
 
@@ -95,13 +108,7 @@ export class UpdateMapFromPlayerPositionCommand extends Command<GameRoom, {
       if (decodedMap.filter(r => r.capturingPlayer === player.id).length <= 1) {
         return;
       }
-      console.log('Capture complete');
 
-      // TODO: This needs to capture the entire tile block,
-      // not just the tiles the player was capturing. We need to do math
-      // to determine which tiles are within the bounds of all of the tiles the player was capturing.
-      // We need to know all the tiles that the team controls.
-      // We may to do some ray casting to determine which tiles are part of the block (cluster) of tiles
       decodedMap.forEach((tile) => {
         // For now, just capture the tiles the player was capturing before.
         // and assign to the new team.
@@ -122,6 +129,8 @@ export class UpdateMapFromPlayerPositionCommand extends Command<GameRoom, {
           decodedMap[tileIndex].team = player.team;
         }
       });
+
+      return;
     }
 
     // The player is not colliding with another player that is capturing the same tile.
@@ -130,7 +139,6 @@ export class UpdateMapFromPlayerPositionCommand extends Command<GameRoom, {
     if (TileHelper.IsPlayerCapturing(player, proposedTileCopy)) {
       decodedMap[player.tile].capturingPlayer = player.id;
       decodedMap[player.tile].capturingTeam = player.team;
-      // proposedTileCopy.capturingTeam = player.team;
     }
 
   }

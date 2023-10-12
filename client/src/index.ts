@@ -1,13 +1,7 @@
-import Phaser from "phaser";
+import Phaser from 'phaser';
 
-import { SceneSelector } from "./scenes/SceneSelector";
-import { Part1Scene } from "./scenes/Part1Scene";
-import { Part2Scene } from "./scenes/Part2Scene";
-import { Part3Scene } from "./scenes/Part3Scene";
-import { Part4Scene } from "./scenes/Part4Scene";
-import { Part5Scene } from "./scenes/Part5Scene";
-
-import { BACKEND_HTTP_URL } from "./backend";
+import { BACKEND_HTTP_URL } from './backend';
+import { Part5Scene } from './scenes/Part5Scene';
 
 const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.AUTO,

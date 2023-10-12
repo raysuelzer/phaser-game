@@ -8,23 +8,46 @@ import { IGameTileState, Player } from '../rooms/GameRoomState';
 import { UpdateMapFromPlayerPositionCommand } from './UpdateMapFromPlayerPositionCmd';
 
 export class SpawnPlayerCommand extends Command<GameRoom, {
-  sessionId: string
+  sessionId: string,
+  respawn?: boolean
 }> {
 
   constructor() {
     super();
   }
 
-  execute({ sessionId }: this['payload']): Command[] {
+  execute({ sessionId, respawn }: this['payload']): Command[] {
     const decodedMap = MapTileEncoder.decodeMap(this.state.encodedMap);
-    const player = new Player();
-    player.id = this.getPlayerId(); // Get an unused player id
-    player.direction = CONFIG.DIRECTIONS.STOP; // Start off stopped
-    player.team = this.getPlayerTeam(); // Get a team for the player
+    let player: Player;
+    if (respawn) {
+      player = this.state.players.get(sessionId);
+    }
 
+    if (!player) {
+      player = new Player();
+      player.id = this.getPlayerId(); // Get an unused player id
+      player.direction = CONFIG.DIRECTIONS.STOP; // Start off stopped
+      player.team = this.getPlayerTeam(); // Get a team for the player
+    }
+
+    // Remove player entirely from the map
+    decodedMap.forEach((tile, index) => {
+      if (tile.player === player.id) {
+        tile.player = 0;
+      }
+      if (tile.capturingPlayer === player.id) {
+        tile.capturingPlayer = 0;
+      }
+    });
+
+    this.state.encodedMap = new ArraySchema<number>(...MapTileEncoder.encodeMap(decodedMap));
+
+    // Assign new blocks
     const tilesIndexes = this.createSpawnBlock(decodedMap); // Get a block of tiles for the player to spawn in
     player.tile = tilesIndexes[4]; // Spawn in the middle of the block;
+
     // Give this blocks to the player now
+    console.log(`Giving player ${player.id} tiles ${tilesIndexes}`)
     tilesIndexes.forEach((tileIndex) => {
       decodedMap[tileIndex].player = player.id;
       decodedMap[tileIndex].team = player.team;
@@ -120,6 +143,4 @@ export class SpawnPlayerCommand extends Command<GameRoom, {
 
     return tileIndices;
   }
-
-
 }
